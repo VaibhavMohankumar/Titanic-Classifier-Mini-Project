@@ -63,99 +63,51 @@ kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
 
 
 # accuracy and model evaluations
-n_classes = len(np.unique(y))
 
 # Logistic Regression
-cf_log = confusion_matrix(y_test, log_proba)
-fpr_log = {}
-tpr_log = {}
-roc_auc_log = {}
-for i in range(n_classes):
-    fpr_log[i], tpr_log[i], _ = roc_curve(y_true=(y_test == i), y_score=log_proba[:, i])
-    roc_auc_log[i] = auc(fpr_log[i], tpr_log[i])
+# cf_log = confusion_matrix(y_test, log_proba)
+fpr_log, tpr_log, _ = roc_curve(y_test, log_proba[:, 1])
+roc_auc_log = auc(fpr_log, tpr_log)
 
 # Decision Tree
-cf_tree = confusion_matrix(y_test, tree_proba)
-fpr_tree = {}
-tpr_tree = {}
-roc_auc_tree = {}
-for i in range(n_classes):
-    fpr_tree[i], tpr_tree[i], _ = roc_curve(y_true=(y_test == i), y_score=tree_proba[:, i])
-    roc_auc_tree[i] = auc(fpr_tree[i], tpr_tree[i])
+# cf_tree = confusion_matrix(y_test, tree_proba)
+fpr_tree, tpr_tree, _ = roc_curve(y_test, tree_proba[:, 1])
+roc_auc_tree = auc(fpr_tree, tpr_tree)
 
 # kNN
-cf_kNN = confusion_matrix(y_test, kNN_proba)
-fpr_kNN = {}
-tpr_kNN = {}
-roc_auc_kNN = {}
-for i in range(n_classes):
-    fpr_kNN[i], tpr_kNN[i], _ = roc_curve(y_true=(y_test == i), y_score=kNN_proba[:, i])
-    roc_auc_kNN[i] = auc(fpr_kNN[i], tpr_kNN[i])
-kNN_model.fit(X_train_scaled, y_train)
+# cf_kNN = confusion_matrix(y_test, kNN_proba)
+fpr_kNN, tpr_kNN, _ = roc_curve(y_test, kNN_proba[:, 1])
+roc_auc_kNN = auc(fpr_kNN, tpr_kNN)
 
 # predictions with optimized parameters
 log_proba = np.asarray(log_model.predict_proba(X_test_scaled))
 tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))
 kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
-
-
-# accuracy and model evaluations
-n_classes = len(np.unique(y))
-
-# Logistic Regression
-#cf_log = confusion_matrix(y_test, log_proba)
-fpr_log = {}
-tpr_log = {}
-roc_auc_log = {}
-for i in range(n_classes):
-    fpr_log[i], tpr_log[i], _ = roc_curve(y_true=(y_test == i), y_score=log_proba[:, i])
-    roc_auc_log[i] = auc(fpr_log[i], tpr_log[i])
-
-# Decision Tree
-#cf_tree = confusion_matrix(y_test, tree_proba)
-fpr_tree = {}
-tpr_tree = {}
-roc_auc_tree = {}
-for i in range(n_classes):
-    fpr_tree[i], tpr_tree[i], _ = roc_curve(y_true=(y_test == i), y_score=tree_proba[:, i])
-    roc_auc_tree[i] = auc(fpr_tree[i], tpr_tree[i])
-
-# kNN
-#cf_kNN = confusion_matrix(y_test, kNN_proba)
-fpr_kNN = {}
-tpr_kNN = {}
-roc_auc_kNN = {}
-for i in range(n_classes):
-    fpr_kNN[i], tpr_kNN[i], _ = roc_curve(y_true=(y_test == i), y_score=kNN_proba[:, i])
-    roc_auc_kNN[i] = auc(fpr_kNN[i], tpr_kNN[i])
-    
     
 # plotting model metrics and evaluations
 fig, axes = plt.subplots(2, 3, figsize=(12, 10))
 
+pos_top = axes[0, 0].get_position()
+pos_bottom = axes[1, 0].get_position()
+new_pos = [pos_top.x0, pos_bottom.y0, pos_top.width, pos_top.y1 - pos_bottom.y0]
+axes[1, 0].remove()
+axes[0, 0].set_position(new_pos)
+
 # Logistic regression ROC curve
-for i in range(n_classes):
-    axes[0, 0].plot(fpr_log[i], tpr_log[i], label=f"Class {i} (AUC = {roc_auc_log[i]:.2f})")
+axes[0, 0].plot(fpr_log, tpr_log, color='purple', label=f"Log ROC Curve (AUC = {roc_auc_log:.2f})")
+# Decision tree ROC curve
+axes[0, 0].plot(fpr_tree, tpr_tree, color='blue', label=f"Tree ROC Curve (AUC = {roc_auc_tree:.2f})")
+# kNN ROC curve
+axes[0, 0].plot(fpr_kNN, tpr_kNN, color='orange', label=f"kNN ROC Curve (AUC = {roc_auc_kNN:.2f})")
+
+axes[0, 0].set_xlim([0.0, 1.0])
+axes[0, 0].set_ylim([0.0, 1.05])
 axes[0, 0].set_xlabel("False Positive Rate")
 axes[0, 0].set_ylabel("True Positive Rate")
 axes[0, 0].legend(loc="lower right")
-axes[0, 0].set_title('Logistic Regression ROC')
+axes[0, 0].set_title('ROC Curves')
 
-# Decision tree ROC curve
-for i in range(n_classes):
-    axes[0, 1].plot(fpr_tree[i], tpr_tree[i], label=f"Class {i} (AUC = {roc_auc_tree[i]:.2f})")
-axes[0, 1].set_xlabel("False Positive Rate")
-axes[0, 1].set_ylabel("True Positive Rate")
-axes[0, 1].legend(loc="lower right")
-axes[0, 1].set_title('Decision Tree ROC')
-
-# kNN ROC curve
-for i in range(n_classes):
-    axes[0, 2].plot(fpr_kNN[i], tpr_kNN[i], label=f"Class {i} (AUC = {roc_auc_kNN[i]:.2f})")
-axes[0, 2].set_xlabel("False Positive Rate")
-axes[0, 2].set_ylabel("True Positive Rate")
-axes[0, 2].legend(loc="lower right")
-axes[0, 2].set_title('kNN ROC')
 
 #fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.98), ncol=2)
+plt.suptitle("Model Comparison for Prediciting Titanic Survival", x=0.5, y=0.98)
 plt.show()
