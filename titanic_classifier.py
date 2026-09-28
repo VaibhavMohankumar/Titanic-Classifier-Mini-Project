@@ -7,7 +7,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
 
 # loading and cleaning csv
 df = pd.read_csv("Titanic-Dataset.csv")
@@ -60,24 +60,27 @@ kNN_model.fit(X_train_scaled, y_train)
 log_proba = np.asarray(log_model.predict_proba(X_test_scaled))
 tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))
 kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
+log_pred = log_model.predict(X_test_scaled)
+tree_pred = tree_model.predict(X_test_scaled)
+kNN_pred = kNN_model.predict(X_test_scaled)
 
 
-# accuracy and model evaluations
+# model evaluations and metrics
 
 # Logistic Regression
-# cf_log = confusion_matrix(y_test, log_proba)
-fpr_log, tpr_log, _ = roc_curve(y_test, log_proba[:, 1])
-roc_auc_log = auc(fpr_log, tpr_log)
+log_cm = confusion_matrix(y_test, log_pred)
+log_fpr, log_tpr, _ = roc_curve(y_test, log_proba[:, 1])
+log_roc_auc = auc(log_fpr, log_tpr)
 
 # Decision Tree
-# cf_tree = confusion_matrix(y_test, tree_proba)
-fpr_tree, tpr_tree, _ = roc_curve(y_test, tree_proba[:, 1])
-roc_auc_tree = auc(fpr_tree, tpr_tree)
+tree_cm = confusion_matrix(y_test, tree_pred)
+tree_fpr, tree_tpr, _ = roc_curve(y_test, tree_proba[:, 1])
+tree_roc_auc = auc(tree_fpr, tree_tpr)
 
 # kNN
-# cf_kNN = confusion_matrix(y_test, kNN_proba)
-fpr_kNN, tpr_kNN, _ = roc_curve(y_test, kNN_proba[:, 1])
-roc_auc_kNN = auc(fpr_kNN, tpr_kNN)
+kNN_cm = confusion_matrix(y_test, kNN_pred)
+kNN_fpr, kNN_tpr, _ = roc_curve(y_test, kNN_proba[:, 1])
+kNN_roc_auc = auc(kNN_fpr, kNN_tpr)
 
 # predictions with optimized parameters
 log_proba = np.asarray(log_model.predict_proba(X_test_scaled))
@@ -85,7 +88,8 @@ tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))
 kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
     
 # plotting model metrics and evaluations
-fig, axes = plt.subplots(2, 3, figsize=(12, 10))
+fig, axes = plt.subplots(2, 4, figsize=(16, 10))
+plt.subplots_adjust(wspace=0.5, hspace=0.3) 
 
 pos_top = axes[0, 0].get_position()
 pos_bottom = axes[1, 0].get_position()
@@ -94,11 +98,11 @@ axes[1, 0].remove()
 axes[0, 0].set_position(new_pos)
 
 # Logistic regression ROC curve
-axes[0, 0].plot(fpr_log, tpr_log, color='purple', label=f"Log ROC Curve (AUC = {roc_auc_log:.2f})")
+axes[0, 0].plot(log_fpr, log_tpr, color='purple', label=f"Log ROC Curve (AUC = {log_roc_auc:.2f})")
 # Decision tree ROC curve
-axes[0, 0].plot(fpr_tree, tpr_tree, color='blue', label=f"Tree ROC Curve (AUC = {roc_auc_tree:.2f})")
+axes[0, 0].plot(tree_fpr, tree_tpr, color='blue', label=f"Tree ROC Curve (AUC = {tree_roc_auc:.2f})")
 # kNN ROC curve
-axes[0, 0].plot(fpr_kNN, tpr_kNN, color='orange', label=f"kNN ROC Curve (AUC = {roc_auc_kNN:.2f})")
+axes[0, 0].plot(kNN_fpr, kNN_tpr, color='orange', label=f"kNN ROC Curve (AUC = {kNN_roc_auc:.2f})")
 
 axes[0, 0].set_xlim([0.0, 1.0])
 axes[0, 0].set_ylim([0.0, 1.05])
@@ -107,7 +111,12 @@ axes[0, 0].set_ylabel("True Positive Rate")
 axes[0, 0].legend(loc="lower right")
 axes[0, 0].set_title('ROC Curves')
 
+disp = ConfusionMatrixDisplay(confusion_matrix=log_cm, display_labels=['Class 0', 'Class 1'])
+disp.plot(ax=axes[0, 1], cmap='Purples', values_format='d')
+disp = ConfusionMatrixDisplay(confusion_matrix=tree_cm, display_labels=['Class 0', 'Class 1'])
+disp.plot(ax=axes[0, 2], cmap='Blues', values_format='d')
+disp = ConfusionMatrixDisplay(confusion_matrix=kNN_cm, display_labels=['Class 0', 'Class 1'])
+disp.plot(ax=axes[0, 3], cmap='Oranges', values_format='d')
 
-#fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.98), ncol=2)
 plt.suptitle("Model Comparison for Prediciting Titanic Survival", x=0.5, y=0.98)
 plt.show()
