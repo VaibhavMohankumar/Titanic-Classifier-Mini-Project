@@ -88,22 +88,46 @@ tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))
 kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
     
 # plotting model metrics and evaluations
-fig, axes = plt.subplots(2, 4, figsize=(16, 10))
-plt.subplots_adjust(wspace=0.5, hspace=0.3) 
+fig, axes = plt.subplots(2, 5, figsize=(20, 10))
+plt.subplots_adjust(wspace=1, hspace=0.2, top=0.90)
 
-pos_top = axes[0, 0].get_position()
-pos_bottom = axes[1, 0].get_position()
-new_pos = [pos_top.x0, pos_bottom.y0, pos_top.width, pos_top.y1 - pos_bottom.y0]
+# Position for 2x2 ROC plot 
+pos_top_left = axes[0, 0].get_position()
+pos_bottom_right_roc = axes[1, 1].get_position()
+
+new_pos_roc = [
+    pos_top_left.x0, 
+    pos_bottom_right_roc.y0, 
+    pos_bottom_right_roc.x1 - pos_top_left.x0, 
+    pos_top_left.y1 - pos_bottom_right_roc.y0
+]
+
+# Position for bottom stretched plot
+pos_bottom_left_span = axes[1, 2].get_position()
+pos_bottom_right_span = axes[1, 4].get_position()
+
+new_pos_bottom_span = [
+    pos_bottom_left_span.x0,
+    pos_bottom_left_span.y0,
+    pos_bottom_right_span.x1 - pos_bottom_left_span.x0,
+    pos_bottom_left_span.height
+]
+
+# Remove unused axes
+axes[0, 1].remove()
 axes[1, 0].remove()
-axes[0, 0].set_position(new_pos)
+axes[1, 1].remove()
+axes[1, 3].remove()
+axes[1, 4].remove()
 
-# Logistic regression ROC curve
+# Apply positions to axes
+axes[0, 0].set_position(new_pos_roc)
+axes[1, 2].set_position(new_pos_bottom_span)
+
+# ROC Curves on 2x2 grid
 axes[0, 0].plot(log_fpr, log_tpr, color='purple', label=f"Log ROC Curve (AUC = {log_roc_auc:.2f})")
-# Decision tree ROC curve
 axes[0, 0].plot(tree_fpr, tree_tpr, color='blue', label=f"Tree ROC Curve (AUC = {tree_roc_auc:.2f})")
-# kNN ROC curve
 axes[0, 0].plot(kNN_fpr, kNN_tpr, color='orange', label=f"kNN ROC Curve (AUC = {kNN_roc_auc:.2f})")
-
 axes[0, 0].set_xlim([0.0, 1.0])
 axes[0, 0].set_ylim([0.0, 1.05])
 axes[0, 0].set_xlabel("False Positive Rate")
@@ -111,12 +135,24 @@ axes[0, 0].set_ylabel("True Positive Rate")
 axes[0, 0].legend(loc="lower right")
 axes[0, 0].set_title('ROC Curves')
 
-disp = ConfusionMatrixDisplay(confusion_matrix=log_cm, display_labels=['Class 0', 'Class 1'])
-disp.plot(ax=axes[0, 1], cmap='Purples', values_format='d')
-disp = ConfusionMatrixDisplay(confusion_matrix=tree_cm, display_labels=['Class 0', 'Class 1'])
-disp.plot(ax=axes[0, 2], cmap='Blues', values_format='d')
-disp = ConfusionMatrixDisplay(confusion_matrix=kNN_cm, display_labels=['Class 0', 'Class 1'])
-disp.plot(ax=axes[0, 3], cmap='Oranges', values_format='d')
+# Logistic Regression Heatmap
+disp = ConfusionMatrixDisplay(confusion_matrix=log_cm, display_labels=['Perished', 'Survived'])
+disp.plot(ax=axes[0, 2], cmap='Purples', values_format='d', xticks_rotation=45)
 
-plt.suptitle("Model Comparison for Prediciting Titanic Survival", x=0.5, y=0.98)
+# Decision Tree Heatmap
+disp = ConfusionMatrixDisplay(confusion_matrix=tree_cm, display_labels=['Perished', 'Survived'])
+disp.plot(ax=axes[0, 3], cmap='Blues', values_format='d', xticks_rotation=45)
+
+# kNN Heatmap
+disp = ConfusionMatrixDisplay(confusion_matrix=kNN_cm, display_labels=['Perished', 'Survived'])
+disp.plot(ax=axes[0, 4], cmap='Oranges', values_format='d', xticks_rotation=45)
+
+
+axes[1, 2].plot([0, 1], [0, 1], label="Placeholder Metric / Calibration Plot")
+axes[1, 2].set_title("Stretched Bottom Plot")
+axes[1, 2].set_xlabel("X Label")
+axes[1, 2].set_ylabel("Y Label")
+axes[1, 2].legend()
+
+plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
 plt.show()
