@@ -7,7 +7,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, roc_curve, auc, precision_recall_curve
 
 # loading and cleaning csv
 df = pd.read_csv("Titanic-Dataset.csv")
@@ -56,44 +56,62 @@ best_n_neighbors = grid_kNN.best_params_["n_neighbors"]
 kNN_model = KNeighborsClassifier(n_neighbors=best_n_neighbors)
 kNN_model.fit(X_train_scaled, y_train)
 
-# predictions with optimized parameters
-log_proba = np.asarray(log_model.predict_proba(X_test_scaled))
-tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))
-kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
-log_pred = log_model.predict(X_test_scaled)
-tree_pred = tree_model.predict(X_test_scaled)
-kNN_pred = kNN_model.predict(X_test_scaled)
+# proabilities and predictions with optimized parameters
+log_proba = np.asarray(log_model.predict_proba(X_test_scaled))[:, 1]
+tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))[:, 1]
+kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))[:, 1]
+# log_pred = log_model.predict(X_test_scaled)
+# tree_pred = tree_model.predict(X_test_scaled)
+# kNN_pred = kNN_model.predict(X_test_scaled)
+
+
+# Best model thresholds
+log_precisions, log_recalls, log_thresholds = precision_recall_curve(y_test, log_proba)
+tree_precisions, tree_recalls, tree_thresholds = precision_recall_curve(y_test, tree_proba)
+kNN_precisions, kNN_recalls, kNN_thresholds = precision_recall_curve(y_test, kNN_proba)
+
+log_f1_scores = 2 * (log_precisions[:-1] * log_recalls[:-1]) / (log_precisions[:-1] + log_recalls[:-1])
+log_best_idx = np.argmax(log_f1_scores)
+log_best_threshold = log_thresholds[log_best_idx]
+
+tree_f1_scores = 2 * (tree_precisions[:-1] * tree_recalls[:-1]) / (tree_precisions[:-1] + tree_recalls[:-1])
+tree_best_idx = np.argmax(tree_f1_scores)
+tree_best_threshold = tree_thresholds[tree_best_idx]
+
+kNN_f1_scores = 2 * (kNN_precisions[:-1] * kNN_recalls[:-1]) / (kNN_precisions[:-1] + kNN_recalls[:-1])
+kNN_best_idx = np.argmax(kNN_f1_scores)
+kNN_best_threshold = kNN_thresholds[kNN_best_idx]
+
+log_pred = (log_proba >= log_best_threshold).astype(int)
+tree_pred = (tree_proba >= tree_best_threshold).astype(int)
+kNN_pred = (kNN_proba >= kNN_best_threshold).astype(int)
 
 
 # model evaluations and metrics
 
 # Logistic Regression
 log_cm = confusion_matrix(y_test, log_pred)
-log_fpr, log_tpr, _ = roc_curve(y_test, log_proba[:, 1])
+log_fpr, log_tpr, _ = roc_curve(y_test, log_proba)
 log_roc_auc = auc(log_fpr, log_tpr)
 
 # Decision Tree
 tree_cm = confusion_matrix(y_test, tree_pred)
-tree_fpr, tree_tpr, _ = roc_curve(y_test, tree_proba[:, 1])
+tree_fpr, tree_tpr, _ = roc_curve(y_test, tree_proba)
 tree_roc_auc = auc(tree_fpr, tree_tpr)
 
 # kNN
 kNN_cm = confusion_matrix(y_test, kNN_pred)
-kNN_fpr, kNN_tpr, _ = roc_curve(y_test, kNN_proba[:, 1])
+kNN_fpr, kNN_tpr, _ = roc_curve(y_test, kNN_proba)
 kNN_roc_auc = auc(kNN_fpr, kNN_tpr)
 
-# predictions with optimized parameters
-log_proba = np.asarray(log_model.predict_proba(X_test_scaled))
-tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))
-kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))
-    
+
 # plotting model metrics and evaluations
-fig, axes = plt.subplots(2, 5, figsize=(20, 10))
-plt.subplots_adjust(wspace=1, hspace=0.2, top=0.90)
+fig, axes = plt.subplots(3, 5, figsize=(20, 10))
+plt.subplots_adjust(wspace=0.7, hspace=0.2, top=0.90)
 
 # Position for 2x2 ROC plot 
 pos_top_left = axes[0, 0].get_position()
-pos_bottom_right_roc = axes[1, 1].get_position()
+pos_bottom_right_roc = axes[2, 1].get_position()
 
 new_pos_roc = [
     pos_top_left.x0, 
@@ -102,27 +120,16 @@ new_pos_roc = [
     pos_top_left.y1 - pos_bottom_right_roc.y0
 ]
 
-# Position for bottom stretched plot
-pos_bottom_left_span = axes[1, 2].get_position()
-pos_bottom_right_span = axes[1, 4].get_position()
-
-new_pos_bottom_span = [
-    pos_bottom_left_span.x0,
-    pos_bottom_left_span.y0,
-    pos_bottom_right_span.x1 - pos_bottom_left_span.x0,
-    pos_bottom_left_span.height
-]
-
 # Remove unused axes
 axes[0, 1].remove()
 axes[1, 0].remove()
 axes[1, 1].remove()
-axes[1, 3].remove()
-axes[1, 4].remove()
+axes[2, 0].remove()
+axes[2, 1].remove()
 
 # Apply positions to axes
 axes[0, 0].set_position(new_pos_roc)
-axes[1, 2].set_position(new_pos_bottom_span)
+
 
 # ROC Curves on 2x2 grid
 axes[0, 0].plot(log_fpr, log_tpr, color='purple', label=f"Log ROC Curve (AUC = {log_roc_auc:.2f})")
@@ -133,26 +140,25 @@ axes[0, 0].set_ylim([0.0, 1.05])
 axes[0, 0].set_xlabel("False Positive Rate")
 axes[0, 0].set_ylabel("True Positive Rate")
 axes[0, 0].legend(loc="lower right")
-axes[0, 0].set_title('ROC Curves')
+axes[0, 0].set_title("ROC Curves")
 
 # Logistic Regression Heatmap
 disp = ConfusionMatrixDisplay(confusion_matrix=log_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[0, 2], cmap='Purples', values_format='d', xticks_rotation=45)
+disp.plot(ax=axes[0, 2], cmap='Purples', xticks_rotation=45, colorbar=False)
+axes[0, 2].tick_params(axis='y', rotation=45)
+axes[0, 2].set_title("Logistic Regression Metrics")
 
 # Decision Tree Heatmap
 disp = ConfusionMatrixDisplay(confusion_matrix=tree_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[0, 3], cmap='Blues', values_format='d', xticks_rotation=45)
+disp.plot(ax=axes[0, 3], cmap='Blues', xticks_rotation=45, colorbar=False)
+axes[0, 3].tick_params(axis='y', rotation=45)
+axes[0, 3].set_title("Decision Tree Metrics")
 
 # kNN Heatmap
 disp = ConfusionMatrixDisplay(confusion_matrix=kNN_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[0, 4], cmap='Oranges', values_format='d', xticks_rotation=45)
-
-
-axes[1, 2].plot([0, 1], [0, 1], label="Placeholder Metric / Calibration Plot")
-axes[1, 2].set_title("Stretched Bottom Plot")
-axes[1, 2].set_xlabel("X Label")
-axes[1, 2].set_ylabel("Y Label")
-axes[1, 2].legend()
+disp.plot(ax=axes[0, 4], cmap='Oranges', xticks_rotation=45, colorbar=False)
+axes[0, 4].tick_params(axis='y', rotation=45)
+axes[0, 4].set_title("K-Nearest Neighbors Metrics")
 
 plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
 plt.show()
