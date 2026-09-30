@@ -106,8 +106,8 @@ kNN_roc_auc = auc(kNN_fpr, kNN_tpr)
 
 
 # plotting model metrics and evaluations
-fig, axes = plt.subplots(3, 5, figsize=(20, 10))
-plt.subplots_adjust(wspace=0.7, hspace=0.2, top=0.90)
+fig, axes = plt.subplots(3, 5, figsize=(30, 15))
+plt.subplots_adjust(wspace=0.7, hspace=0.4, top=0.90)
 
 # Position for 2x2 ROC plot 
 pos_top_left = axes[0, 0].get_position()
@@ -142,23 +142,85 @@ axes[0, 0].set_ylabel("True Positive Rate")
 axes[0, 0].legend(loc="lower right")
 axes[0, 0].set_title("ROC Curves")
 
+# Logistic Regression Precision-Recall Curve
+axes[0, 2].plot(log_recalls, log_precisions, color='purple', lw=2, label='PR Curve')
+axes[0, 2].scatter(log_recalls[log_best_idx], log_precisions[log_best_idx], color='red', marker='o', s=25,label=f'Max F1 Threshold: {log_best_threshold:.2f}', zorder=5)
+axes[0, 2].set_xlabel('Recall')
+axes[0, 2].set_ylabel('Precision')
+axes[0, 2].set_title('Logistic Regression\nPrecision-Recall Trade-off', fontsize='medium')
+axes[0, 2].grid(True, linestyle='--', alpha=0.5)
+axes[0, 2].legend(loc='lower left', fontsize='xx-small')
+
+# Decision Tree Precision-Recall Curve
+axes[0, 3].plot(tree_recalls, tree_precisions, color='blue', lw=2, label='PR Curve')
+axes[0, 3].scatter(tree_recalls[tree_best_idx], tree_precisions[tree_best_idx], color='red', marker='o', s=25,label=f'Max F1 Threshold: {tree_best_threshold:.2f}', zorder=5)
+axes[0, 3].set_xlabel('Recall')
+axes[0, 3].set_ylabel('Precision')
+axes[0, 3].set_title('Decision Tree\nPrecision-Recall Trade-off', fontsize='medium')
+axes[0, 3].grid(True, linestyle='--', alpha=0.5)
+axes[0, 3].legend(loc='lower left', fontsize='xx-small')
+
+# kNN Precision-Recall Curve
+axes[0, 4].plot(kNN_recalls, kNN_precisions, color='orange', lw=2, label='PR Curve')
+axes[0, 4].scatter(kNN_recalls[kNN_best_idx], kNN_precisions[kNN_best_idx], color='red', marker='o', s=25,label=f'Max F1 Threshold: {kNN_best_threshold:.2f}', zorder=5)
+axes[0, 4].set_xlabel('Recall')
+axes[0, 4].set_ylabel('Precision')
+axes[0, 4].set_title('k-Nearest Neighbors\nPrecision-Recall Trade-off', fontsize='medium')
+axes[0, 4].grid(True, linestyle='--', alpha=0.5)
+axes[0, 4].legend(loc='lower left', fontsize='xx-small')
+
+
+# Logistic Regression Metrics vs Threshold plot
+axes[1, 2].plot(log_thresholds, log_precisions[:-1], label='Precision', color='green', linestyle='--')
+axes[1, 2].plot(log_thresholds, log_recalls[:-1], label='Recall', color='black', linestyle='--')
+axes[1, 2].plot(log_thresholds, log_f1_scores, label='F1-Score', color='red', lw=2)
+axes[1, 2].axvline(log_best_threshold, color='purple', linestyle=':', lw=2, label=f'Chosen Cutoff ({log_best_threshold:.2f})')
+axes[1, 2].set_xlabel('Probability Decision Threshold', fontsize='small')
+axes[1, 2].set_ylabel('Score Metric')
+axes[1, 2].set_title('Logistic Regression\nThreshold Metric Shift', fontsize='medium')
+axes[1, 2].grid(True, linestyle='--', alpha=0.5)
+axes[1, 2].legend(loc='lower left', fontsize='xx-small')
+
+# Decision Tree Metrics vs Threshold plot
+axes[1, 3].plot(tree_thresholds, tree_precisions[:-1], label='Precision', color='green', linestyle='--')
+axes[1, 3].plot(tree_thresholds, tree_recalls[:-1], label='Recall', color='black', linestyle='--')
+axes[1, 3].plot(tree_thresholds, tree_f1_scores, label='F1-Score', color='red', lw=2)
+axes[1, 3].axvline(tree_best_threshold, color='blue', linestyle=':', lw=2, label=f'Chosen Cutoff ({tree_best_threshold:.2f})')
+axes[1, 3].set_xlabel('Probability Decision Threshold', fontsize='small')
+axes[1, 3].set_ylabel('Score Metric')
+axes[1, 3].set_title('Decision Tree\nThreshold Metric Shift', fontsize='medium')
+axes[1, 3].grid(True, linestyle='--', alpha=0.5)
+axes[1, 3].legend(loc='lower left', fontsize='xx-small')
+
+# kNN Metrics vs Threshold plot
+axes[1, 4].plot(kNN_thresholds, kNN_precisions[:-1], label='Precision', color='green', linestyle='--')
+axes[1, 4].plot(kNN_thresholds, kNN_recalls[:-1], label='Recall', color='black', linestyle='--')
+axes[1, 4].plot(kNN_thresholds, kNN_f1_scores, label='F1-Score', color='red', lw=2)
+axes[1, 4].axvline(kNN_best_threshold, color='orange', linestyle=':', lw=2, label=f'Chosen Cutoff ({kNN_best_threshold:.2f})')
+axes[1, 4].set_xlabel('Probability Decision Threshold', fontsize='small')
+axes[1, 4].set_ylabel('Score Metric')
+axes[1, 4].set_title('k-Nearest Neighbors\nThreshold Metric Shift', fontsize='medium')
+axes[1, 4].grid(True, linestyle='--', alpha=0.5)
+axes[1, 4].legend(loc='lower left', fontsize='xx-small')
+
+
 # Logistic Regression Heatmap
 disp = ConfusionMatrixDisplay(confusion_matrix=log_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[0, 2], cmap='Purples', xticks_rotation=45, colorbar=False)
-axes[0, 2].tick_params(axis='y', rotation=45)
-axes[0, 2].set_title("Logistic Regression Metrics")
+disp.plot(ax=axes[2, 2], cmap='Purples', xticks_rotation=45, colorbar=False)
+axes[2, 2].tick_params(axis='y', rotation=45)
+axes[2, 2].set_title("Logistic Regression\nConfusion Matrix", fontsize='small')
 
 # Decision Tree Heatmap
 disp = ConfusionMatrixDisplay(confusion_matrix=tree_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[0, 3], cmap='Blues', xticks_rotation=45, colorbar=False)
-axes[0, 3].tick_params(axis='y', rotation=45)
-axes[0, 3].set_title("Decision Tree Metrics")
+disp.plot(ax=axes[2, 3], cmap='Blues', xticks_rotation=45, colorbar=False)
+axes[2, 3].tick_params(axis='y', rotation=45)
+axes[2, 3].set_title("Decision Tree\nConfusion Matrix", fontsize='small')
 
 # kNN Heatmap
 disp = ConfusionMatrixDisplay(confusion_matrix=kNN_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[0, 4], cmap='Oranges', xticks_rotation=45, colorbar=False)
-axes[0, 4].tick_params(axis='y', rotation=45)
-axes[0, 4].set_title("K-Nearest Neighbors Metrics")
+disp.plot(ax=axes[2, 4], cmap='Oranges', xticks_rotation=45, colorbar=False)
+axes[2, 4].tick_params(axis='y', rotation=45)
+axes[2, 4].set_title("k-Nearest Neighbors\nConfusion Matrix", fontsize='small')
 
 plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
 plt.show()
