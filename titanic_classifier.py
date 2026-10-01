@@ -56,7 +56,7 @@ best_n_neighbors = grid_kNN.best_params_["n_neighbors"]
 kNN_model = KNeighborsClassifier(n_neighbors=best_n_neighbors)
 kNN_model.fit(X_train_scaled, y_train)
 
-# proabilities and predictions with optimized parameters
+# proabilities with optimized parameters
 log_proba = np.asarray(log_model.predict_proba(X_test_scaled))[:, 1]
 tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))[:, 1]
 kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))[:, 1]
@@ -79,6 +79,7 @@ kNN_f1_scores = 2 * (kNN_precisions[:-1] * kNN_recalls[:-1]) / (kNN_precisions[:
 kNN_best_idx = np.argmax(kNN_f1_scores)
 kNN_best_threshold = kNN_thresholds[kNN_best_idx]
 
+# predictions based on optimized parameters
 log_pred = (log_proba >= log_best_threshold).astype(int)
 tree_pred = (tree_proba >= tree_best_threshold).astype(int)
 kNN_pred = (kNN_proba >= kNN_best_threshold).astype(int)
@@ -140,6 +141,30 @@ axes[0, 0].legend(loc="lower right")
 axes[0, 0].set_title("ROC Curves")
 
 def plot_precision_recall_curve(axes, recalls, precisions, best_idx, best_threshold, title, color):
+    """
+    Plots the precision-recall curve along with a highlighted point for the best threshold.
+
+    Parameters
+    ----------
+    axes : matplotlib.axes.Axes
+        The Matplotlib subplot axes object where the curve will be drawn.
+    recalls : array-like
+        Array of recall values corresponding to different evaluation thresholds.
+    precisions : array-like
+        Array of precision values corresponding to different evaluation thresholds.
+    best_idx : int
+        Index corresponding to the optimal threshold that maximizes the F1-score.
+    best_threshold : float
+        The numerical threshold value corresponding to the optimal point.
+    title : str
+        Base string used to construct the plot title.
+    color : str
+        Color used to plot the Precision-Recall line.
+
+    Returns
+    -------
+    None
+    """
     axes.plot(recalls, precisions, color=color, lw=2, label='PR Curve')
     axes.scatter(recalls[best_idx], precisions[best_idx], color='red', marker='o', s=100, label=f'Max F1 Threshold: {best_threshold:.2f}', zorder=5)
     axes.set_xlabel('Recall')
@@ -149,6 +174,32 @@ def plot_precision_recall_curve(axes, recalls, precisions, best_idx, best_thresh
     axes.legend(loc='lower left', fontsize='xx-small')
     
 def plot_metric_threshold(axes, precisions, recalls, f1_scores, thresholds, best_threshold, title, color):
+    """
+    Plots Precision, Recall, and F1-score metrics across a range of probability decision thresholds.
+
+    Parameters
+    ----------
+    axes : matplotlib.axes.Axes
+        The Matplotlib subplot axes object where the curves will be drawn.
+    precisions : array-like
+        Array of precision values for each threshold (length must match thresholds + 1).
+    recalls : array-like
+        Array of recall values for each threshold (length must match thresholds + 1).
+    f1_scores : array-like
+        Array of calculated F1-score values corresponding to each decision threshold.
+    thresholds : array-like
+        Array of decision threshold probability values.
+    best_threshold : float
+        The chosen probability cutoff threshold to highlight with a vertical reference line.
+    title : str
+        Base string used to construct the plot title.
+    color : str
+        Color used for the vertical cutoff reference line.
+
+    Returns
+    -------
+    None
+    """
     axes.plot(thresholds, precisions[:-1], label='Precision', color='green', linestyle='--')
     axes.plot(thresholds, recalls[:-1], label='Recall', color='black', linestyle='--')
     axes.plot(thresholds, f1_scores, label='F1-Score', color='red', lw=2)
@@ -160,6 +211,24 @@ def plot_metric_threshold(axes, precisions, recalls, f1_scores, thresholds, best
     axes.legend(loc='lower left', fontsize='xx-small')
     
 def plot_confusion_matrix(axes, cm, title, color):
+    """
+    Displays a formatted confusion matrix using Matplotlib and scikit-learn's ConfusionMatrixDisplay.
+
+    Parameters
+    ----------
+    axes : matplotlib.axes.Axes
+        The Matplotlib subplot axes object where the confusion matrix will be rendered.
+    cm : array-like of shape (n_classes, n_classes)
+        The calculated confusion matrix values to display.
+    title : str
+        Base string used to construct the plot title.
+    color : str or matplotlib.colors.Colormap
+        Color map applied to the rendered confusion matrix heat map.
+
+    Returns
+    -------
+    None
+    """
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Perished', 'Survived'])
     disp.plot(ax=axes, cmap=color, xticks_rotation=45, colorbar=False)
     axes.tick_params(axis='y', rotation=45)
