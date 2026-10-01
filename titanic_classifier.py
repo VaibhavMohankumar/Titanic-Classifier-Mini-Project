@@ -258,4 +258,5 @@ plot_confusion_matrix(axes[2, 4], kNN_cm, 'k-Nearest Neighbors', 'Oranges')
 
 
 plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
+plt.savefig('results.png', bbox_inches='tight')
 plt.show()
