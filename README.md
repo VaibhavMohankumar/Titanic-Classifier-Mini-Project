@@ -27,6 +27,8 @@ and k-Nearest Neighbors — predicting passenger survival on the Titanic.
 
 ## Results
 
+![Model comparison: ROC curves, precision-recall trade-offs, threshold sensitivity, and confusion matrices](results.png)
+
 | Model | AUC | Accuracy | Precision (Survived) | Recall (Survived) |
 |---|---|---|---|---|
 | Logistic Regression | 0.83 | 79% | 73% | 71% |
