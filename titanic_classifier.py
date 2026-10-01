@@ -26,9 +26,11 @@ X = df[features]
 y = df[target]
 
 # splitting and scaling data for training
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, stratify=y, random_state=2)
-scalar = StandardScaler().fit(X)
+X_temp, X_test, y_temp, y_test = train_test_split(X, y, train_size=0.85, stratify=y, random_state=2)
+X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, train_size=0.8235, stratify=y_temp, random_state=2)
+scalar = StandardScaler().fit(X_train)
 X_train_scaled = scalar.transform(X_train)
+X_val_scaled = scalar.transform(X_val)
 X_test_scaled = scalar.transform(X_test)
 
 
@@ -40,7 +42,7 @@ log_model.fit(X_train_scaled, y_train)
 parameters = {
     "max_depth": range(1, 26)
 }
-grid_search = GridSearchCV(DecisionTreeClassifier(), param_grid=parameters)
+grid_search = GridSearchCV(DecisionTreeClassifier(random_state=2), param_grid=parameters)
 grid_tree = grid_search.fit(X_train_scaled, y_train)
 best_depth = grid_tree.best_params_["max_depth"]
 tree_model = DecisionTreeClassifier(random_state=2, max_depth=best_depth)
@@ -57,15 +59,15 @@ kNN_model = KNeighborsClassifier(n_neighbors=best_n_neighbors)
 kNN_model.fit(X_train_scaled, y_train)
 
 # proabilities with optimized parameters
-log_proba = np.asarray(log_model.predict_proba(X_test_scaled))[:, 1]
-tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))[:, 1]
-kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))[:, 1]
+log_val_proba = np.asarray(log_model.predict_proba(X_val_scaled))[:, 1]
+tree_val_proba = np.asarray(tree_model.predict_proba(X_val_scaled))[:, 1]
+kNN_val_proba = np.asarray(kNN_model.predict_proba(X_val_scaled))[:, 1]
 
 
 # Best model thresholds
-log_precisions, log_recalls, log_thresholds = precision_recall_curve(y_test, log_proba)
-tree_precisions, tree_recalls, tree_thresholds = precision_recall_curve(y_test, tree_proba)
-kNN_precisions, kNN_recalls, kNN_thresholds = precision_recall_curve(y_test, kNN_proba)
+log_precisions, log_recalls, log_thresholds = precision_recall_curve(y_val, log_val_proba)
+tree_precisions, tree_recalls, tree_thresholds = precision_recall_curve(y_val, tree_val_proba)
+kNN_precisions, kNN_recalls, kNN_thresholds = precision_recall_curve(y_val, kNN_val_proba)
 
 log_f1_scores = 2 * (log_precisions[:-1] * log_recalls[:-1]) / (log_precisions[:-1] + log_recalls[:-1])
 log_best_idx = np.argmax(log_f1_scores)
@@ -79,7 +81,12 @@ kNN_f1_scores = 2 * (kNN_precisions[:-1] * kNN_recalls[:-1]) / (kNN_precisions[:
 kNN_best_idx = np.argmax(kNN_f1_scores)
 kNN_best_threshold = kNN_thresholds[kNN_best_idx]
 
-# predictions based on optimized parameters
+# final probailities on test set
+log_proba = np.asarray(log_model.predict_proba(X_test_scaled))[:, 1]
+tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))[:, 1]
+kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))[:, 1]
+
+# predictions based on optimized parameters and on test set
 log_pred = (log_proba >= log_best_threshold).astype(int)
 tree_pred = (tree_proba >= tree_best_threshold).astype(int)
 kNN_pred = (kNN_proba >= kNN_best_threshold).astype(int)
