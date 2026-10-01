@@ -60,9 +60,6 @@ kNN_model.fit(X_train_scaled, y_train)
 log_proba = np.asarray(log_model.predict_proba(X_test_scaled))[:, 1]
 tree_proba = np.asarray(tree_model.predict_proba(X_test_scaled))[:, 1]
 kNN_proba = np.asarray(kNN_model.predict_proba(X_test_scaled))[:, 1]
-# log_pred = log_model.predict(X_test_scaled)
-# tree_pred = tree_model.predict(X_test_scaled)
-# kNN_pred = kNN_model.predict(X_test_scaled)
 
 
 # Best model thresholds
@@ -142,85 +139,47 @@ axes[0, 0].set_ylabel("True Positive Rate")
 axes[0, 0].legend(loc="lower right")
 axes[0, 0].set_title("ROC Curves")
 
-# Logistic Regression Precision-Recall Curve
-axes[0, 2].plot(log_recalls, log_precisions, color='purple', lw=2, label='PR Curve')
-axes[0, 2].scatter(log_recalls[log_best_idx], log_precisions[log_best_idx], color='red', marker='o', s=25,label=f'Max F1 Threshold: {log_best_threshold:.2f}', zorder=5)
-axes[0, 2].set_xlabel('Recall')
-axes[0, 2].set_ylabel('Precision')
-axes[0, 2].set_title('Logistic Regression\nPrecision-Recall Trade-off', fontsize='medium')
-axes[0, 2].grid(True, linestyle='--', alpha=0.5)
-axes[0, 2].legend(loc='lower left', fontsize='xx-small')
+def plot_precision_recall_curve(axes, recalls, precisions, best_idx, best_threshold, title, color):
+    axes.plot(recalls, precisions, color=color, lw=2, label='PR Curve')
+    axes.scatter(recalls[best_idx], precisions[best_idx], color='red', marker='o', s=100, label=f'Max F1 Threshold: {best_threshold:.2f}', zorder=5)
+    axes.set_xlabel('Recall')
+    axes.set_ylabel('Precision')
+    axes.set_title(f'{title}' + '\nPrecision-Recall Trade-off', fontsize='medium')
+    axes.grid(True, linestyle='--', alpha=0.5)
+    axes.legend(loc='lower left', fontsize='xx-small')
+    
+def plot_metric_threshold(axes, precisions, recalls, f1_scores, thresholds, best_threshold, title, color):
+    axes.plot(thresholds, precisions[:-1], label='Precision', color='green', linestyle='--')
+    axes.plot(thresholds, recalls[:-1], label='Recall', color='black', linestyle='--')
+    axes.plot(thresholds, f1_scores, label='F1-Score', color='red', lw=2)
+    axes.axvline(best_threshold, color=color, linestyle=':', lw=2, label=f'Chosen Cutoff ({best_threshold:.2f})')
+    axes.set_xlabel('Probability Decision Threshold', fontsize='small')
+    axes.set_ylabel('Score Metric')
+    axes.set_title(f'{title}\nThreshold Metric Shift', fontsize='medium')
+    axes.grid(True, linestyle='--', alpha=0.5)
+    axes.legend(loc='lower left', fontsize='xx-small')
+    
+def plot_confusion_matrix(axes, cm, title, color):
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Perished', 'Survived'])
+    disp.plot(ax=axes, cmap=color, xticks_rotation=45, colorbar=False)
+    axes.tick_params(axis='y', rotation=45)
+    axes.set_title(f"{title}\nConfusion Matrix", fontsize='small')
+    
+# precisio-recall curves for all 3 models
+plot_precision_recall_curve(axes[0, 2], log_recalls, log_precisions, log_best_idx, log_best_threshold, 'Logistic Regression', 'purple')
+plot_precision_recall_curve(axes[0, 3], tree_recalls, tree_precisions, tree_best_idx, tree_best_threshold, 'Decision Tree', 'blue')
+plot_precision_recall_curve(axes[0, 4], kNN_recalls, kNN_precisions, kNN_best_idx, kNN_best_threshold, 'k-Nearest Neighbors', 'orange')
 
-# Decision Tree Precision-Recall Curve
-axes[0, 3].plot(tree_recalls, tree_precisions, color='blue', lw=2, label='PR Curve')
-axes[0, 3].scatter(tree_recalls[tree_best_idx], tree_precisions[tree_best_idx], color='red', marker='o', s=25,label=f'Max F1 Threshold: {tree_best_threshold:.2f}', zorder=5)
-axes[0, 3].set_xlabel('Recall')
-axes[0, 3].set_ylabel('Precision')
-axes[0, 3].set_title('Decision Tree\nPrecision-Recall Trade-off', fontsize='medium')
-axes[0, 3].grid(True, linestyle='--', alpha=0.5)
-axes[0, 3].legend(loc='lower left', fontsize='xx-small')
+# metric-threshold plots for all 3 models
+plot_metric_threshold(axes[1, 2], log_precisions, log_recalls, log_f1_scores, log_thresholds, log_best_threshold, 'Logistic Regression', 'purple')
+plot_metric_threshold(axes[1, 3], tree_precisions, tree_recalls, tree_f1_scores, tree_thresholds, tree_best_threshold, 'Decision Tree', 'blue')
+plot_metric_threshold(axes[1, 4], kNN_precisions, kNN_recalls, kNN_f1_scores, kNN_thresholds, kNN_best_threshold, 'k-Nearest Neighbors', 'orange')
 
-# kNN Precision-Recall Curve
-axes[0, 4].plot(kNN_recalls, kNN_precisions, color='orange', lw=2, label='PR Curve')
-axes[0, 4].scatter(kNN_recalls[kNN_best_idx], kNN_precisions[kNN_best_idx], color='red', marker='o', s=25,label=f'Max F1 Threshold: {kNN_best_threshold:.2f}', zorder=5)
-axes[0, 4].set_xlabel('Recall')
-axes[0, 4].set_ylabel('Precision')
-axes[0, 4].set_title('k-Nearest Neighbors\nPrecision-Recall Trade-off', fontsize='medium')
-axes[0, 4].grid(True, linestyle='--', alpha=0.5)
-axes[0, 4].legend(loc='lower left', fontsize='xx-small')
+# confusion matrix plots for all 3 models
+plot_confusion_matrix(axes[2, 2], log_cm, 'Logistic Regression', 'Purples')
+plot_confusion_matrix(axes[2, 3], tree_cm, 'Decision Tree', 'Blues')
+plot_confusion_matrix(axes[2, 4], kNN_cm, 'k-Nearest Neighbors', 'Oranges')
 
-
-# Logistic Regression Metrics vs Threshold plot
-axes[1, 2].plot(log_thresholds, log_precisions[:-1], label='Precision', color='green', linestyle='--')
-axes[1, 2].plot(log_thresholds, log_recalls[:-1], label='Recall', color='black', linestyle='--')
-axes[1, 2].plot(log_thresholds, log_f1_scores, label='F1-Score', color='red', lw=2)
-axes[1, 2].axvline(log_best_threshold, color='purple', linestyle=':', lw=2, label=f'Chosen Cutoff ({log_best_threshold:.2f})')
-axes[1, 2].set_xlabel('Probability Decision Threshold', fontsize='small')
-axes[1, 2].set_ylabel('Score Metric')
-axes[1, 2].set_title('Logistic Regression\nThreshold Metric Shift', fontsize='medium')
-axes[1, 2].grid(True, linestyle='--', alpha=0.5)
-axes[1, 2].legend(loc='lower left', fontsize='xx-small')
-
-# Decision Tree Metrics vs Threshold plot
-axes[1, 3].plot(tree_thresholds, tree_precisions[:-1], label='Precision', color='green', linestyle='--')
-axes[1, 3].plot(tree_thresholds, tree_recalls[:-1], label='Recall', color='black', linestyle='--')
-axes[1, 3].plot(tree_thresholds, tree_f1_scores, label='F1-Score', color='red', lw=2)
-axes[1, 3].axvline(tree_best_threshold, color='blue', linestyle=':', lw=2, label=f'Chosen Cutoff ({tree_best_threshold:.2f})')
-axes[1, 3].set_xlabel('Probability Decision Threshold', fontsize='small')
-axes[1, 3].set_ylabel('Score Metric')
-axes[1, 3].set_title('Decision Tree\nThreshold Metric Shift', fontsize='medium')
-axes[1, 3].grid(True, linestyle='--', alpha=0.5)
-axes[1, 3].legend(loc='lower left', fontsize='xx-small')
-
-# kNN Metrics vs Threshold plot
-axes[1, 4].plot(kNN_thresholds, kNN_precisions[:-1], label='Precision', color='green', linestyle='--')
-axes[1, 4].plot(kNN_thresholds, kNN_recalls[:-1], label='Recall', color='black', linestyle='--')
-axes[1, 4].plot(kNN_thresholds, kNN_f1_scores, label='F1-Score', color='red', lw=2)
-axes[1, 4].axvline(kNN_best_threshold, color='orange', linestyle=':', lw=2, label=f'Chosen Cutoff ({kNN_best_threshold:.2f})')
-axes[1, 4].set_xlabel('Probability Decision Threshold', fontsize='small')
-axes[1, 4].set_ylabel('Score Metric')
-axes[1, 4].set_title('k-Nearest Neighbors\nThreshold Metric Shift', fontsize='medium')
-axes[1, 4].grid(True, linestyle='--', alpha=0.5)
-axes[1, 4].legend(loc='lower left', fontsize='xx-small')
-
-
-# Logistic Regression Heatmap
-disp = ConfusionMatrixDisplay(confusion_matrix=log_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[2, 2], cmap='Purples', xticks_rotation=45, colorbar=False)
-axes[2, 2].tick_params(axis='y', rotation=45)
-axes[2, 2].set_title("Logistic Regression\nConfusion Matrix", fontsize='small')
-
-# Decision Tree Heatmap
-disp = ConfusionMatrixDisplay(confusion_matrix=tree_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[2, 3], cmap='Blues', xticks_rotation=45, colorbar=False)
-axes[2, 3].tick_params(axis='y', rotation=45)
-axes[2, 3].set_title("Decision Tree\nConfusion Matrix", fontsize='small')
-
-# kNN Heatmap
-disp = ConfusionMatrixDisplay(confusion_matrix=kNN_cm, display_labels=['Perished', 'Survived'])
-disp.plot(ax=axes[2, 4], cmap='Oranges', xticks_rotation=45, colorbar=False)
-axes[2, 4].tick_params(axis='y', rotation=45)
-axes[2, 4].set_title("k-Nearest Neighbors\nConfusion Matrix", fontsize='small')
 
 plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
 plt.show()
