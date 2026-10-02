@@ -35,15 +35,12 @@ and k-Nearest Neighbors — predicting passenger survival on the Titanic.
 | Decision Tree | 0.84 | 84% | 85% | 69% |
 | k-Nearest Neighbors | 0.87 | 79% | 73% | 71% |
 
-See `results.png` for ROC curves, precision-recall trade-offs, threshold sensitivity, 
-and confusion matrices for all three models.
-
 ## Takeaway
 
-kNN has the best AUC, meaning it ranks survivors vs. non-survivors best across every 
-threshold. The decision tree has the best accuracy and precision at its chosen cutoff — 
-only 6 false positives — so if minimizing false alarms matters more than overall ranking 
-quality, it's the better pick. Which model "wins" depends on what you're optimizing for.
+kNN has the best AUC, which means it ranks survivors vs. non-survivors best across every 
+threshold. The decision tree has the best accuracy and precision at its chosen cutoff with 
+only 6 false positives. So if minimizing false alarms matters more than overall ranking 
+quality, it's the better choice. Which model "wins" depends on what you're optimizing for.
 
 ## Usage
 
@@ -54,6 +51,6 @@ python titanic_classifier.py
 
 ## What I'd improve next
 
-- Engineer a title feature from Name (Mr/Mrs/Miss often outperforms raw Sex/Age)
+- Engineer a title feature from Name
 - Try cross-validation instead of a single validation split for threshold selection
 - Test an ensemble of the three models
