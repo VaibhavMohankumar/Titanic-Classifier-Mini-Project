@@ -31,16 +31,19 @@ and k-Nearest Neighbors — predicting passenger survival on the Titanic.
 
 | Model | AUC | Accuracy | Precision (Survived) | Recall (Survived) |
 |---|---|---|---|---|
-| Logistic Regression | 0.83 | 79% | 73% | 71% |
-| Decision Tree | 0.84 | 84% | 85% | 69% |
-| k-Nearest Neighbors | 0.87 | 79% | 73% | 71% |
+| Logistic Regression | 0.86 | 82% | 78% | 75% |
+| Decision Tree | 0.84 | 82% | 81% | 69% |
+| k-Nearest Neighbors | 0.86 | 84% | 82% | 73% |
 
 ## Takeaway
 
-kNN has the best AUC, which means it ranks survivors vs. non-survivors best across every 
-threshold. The decision tree has the best accuracy and precision at its chosen cutoff with 
-only 6 false positives. So if minimizing false alarms matters more than overall ranking 
-quality, it's the better choice. Which model "wins" depends on what you're optimizing for.
+Adding a Title feature (extracted from passenger names — Mr/Mrs/Miss/Master/Rare)
+improved all three models, most notably Logistic Regression (AUC 0.83 → 0.86).
+kNN now has the best accuracy (84%), while Logistic Regression and kNN are tied
+for the best AUC (0.86). The Decision Tree has the best precision (81%, fewest
+false positives at 8). Which model "wins" still depends on what's being
+optimized for — overall ranking quality (AUC) vs. minimizing false alarms
+(precision) vs. raw accuracy.
 
 ## Usage
 
@@ -51,6 +54,5 @@ python titanic_classifier.py
 
 ## What I'd improve next
 
-- Engineer a title feature from Name
 - Try cross-validation instead of a single validation split for threshold selection
 - Test an ensemble of the three models

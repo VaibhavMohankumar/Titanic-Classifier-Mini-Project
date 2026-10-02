@@ -10,17 +10,32 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, roc_curve, auc, precision_recall_curve
 
 # loading and cleaning csv
-df = pd.read_csv("Titanic-Dataset.csv")
-df = df.drop(["Name", "Ticket", "Cabin"], axis=1)
+df = pd.read_csv('Titanic-Dataset.csv')
+df = df.drop(['Ticket', 'Cabin'], axis=1)
 
-# encoding strings to numbers for training
+# Cleaning data
 df['Age'] = df['Age'].fillna(df['Age'].median())
 df['Sex'] = df['Sex'].replace('male', 0).replace('female', 1)
 df['Embarked'] = df["Embarked"].replace('C', 0).replace('Q', 1).replace('S', 2)
 df['Embarked'] = df['Embarked'].fillna(df['Embarked'].mode()[0])
 
+# title feature engineering i.e. making the 'Name' data useful
+df['Title'] = df['Name'].str.extract(r',\s*([^.]*)\.')
+df = df.drop('Name', axis=1)
+title_map = {
+    'Mr': 'Mr',
+    'Miss': 'Miss', 'Mlle': 'Miss', 'Ms': 'Miss',
+    'Mrs': 'Mrs', 'Mme': 'Mrs',
+    'Master': 'Master',
+    'Dr': 'Rare', 'Rev': 'Rare', 'Major': 'Rare', 'Col': 'Rare', 'Countess': 'Rare',
+    'Capt': 'Rare', 'Sir': 'Rare', 'Lady': 'Rare', 'Don': 'Rare', 'Jonkheer': 'Rare'
+}
+df['Title'] = df['Title'].map(title_map).fillna('Rare')
+df = pd.get_dummies(df, columns=['Title'], drop_first=True)
+
 # separating into feature and target frames
-features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
+features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked', 
+            'Title_Mr', 'Title_Miss', 'Title_Mrs', 'Title_Rare']
 target = 'Survived'
 X = df[features]
 y = df[target]
@@ -40,21 +55,21 @@ log_model.fit(X_train_scaled, y_train)
 
 # training decision tree model and optimizing maximum depth
 parameters = {
-    "max_depth": range(1, 26)
+    'max_depth': range(1, 26)
 }
 grid_search = GridSearchCV(DecisionTreeClassifier(random_state=2), param_grid=parameters)
 grid_tree = grid_search.fit(X_train_scaled, y_train)
-best_depth = grid_tree.best_params_["max_depth"]
+best_depth = grid_tree.best_params_['max_depth']
 tree_model = DecisionTreeClassifier(random_state=2, max_depth=best_depth)
 tree_model.fit(X_train_scaled, y_train)
 
 # training kNN model and optimizing number of neighbors
 parameters = {
-    "n_neighbors": range(1, 21)
+    'n_neighbors': range(1, 21)
 }
 grid_search = GridSearchCV(KNeighborsClassifier(), param_grid=parameters)
 grid_kNN = grid_search.fit(X_train_scaled, y_train)
-best_n_neighbors = grid_kNN.best_params_["n_neighbors"]
+best_n_neighbors = grid_kNN.best_params_['n_neighbors']
 kNN_model = KNeighborsClassifier(n_neighbors=best_n_neighbors)
 kNN_model.fit(X_train_scaled, y_train)
 
