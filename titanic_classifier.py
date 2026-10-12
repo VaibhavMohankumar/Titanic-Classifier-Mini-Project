@@ -49,7 +49,7 @@ X_val_scaled = scalar.transform(X_val)
 X_test_scaled = scalar.transform(X_test)
 
 
-# training logistic regression model
+# training logistic regression model and optimizing C
 parameters = {
     'C': np.logspace(-4, 4, 5)
 }
@@ -137,7 +137,7 @@ kNN_roc_auc = auc(kNN_fpr, kNN_tpr)
 
 
 # plotting model metrics and evaluations
-fig, axes = plt.subplots(3, 6, figsize=(30, 15))
+fig, axes = plt.subplots(3, 7, figsize=(30, 15))
 plt.subplots_adjust(wspace=0.7, hspace=0.4, top=0.90)
 
 # Position for 2x2 ROC plot 
@@ -283,9 +283,9 @@ plot_confusion_matrix(axes[1, 5], tree_cm, tree_model.__class__.__name__, 'Blues
 plot_confusion_matrix(axes[2, 5], kNN_cm, kNN_model.__class__.__name__, 'Oranges')
 
 # Show realistic evaluations
-log_scores = cross_val_score(log_model, X, y, cv=5, scoring="neg_mean_absolute_error")
-tree_scores = cross_val_score(tree_model, X, y, cv=5, scoring="neg_mean_absolute_error")
-kNN_scores = cross_val_score(kNN_model, X, y, cv=5, scoring="neg_mean_absolute_error")
+log_scores = cross_val_score(log_model, X_temp, y_temp, cv=5, scoring="neg_mean_absolute_error")
+tree_scores = cross_val_score(tree_model, X_temp, y_temp, cv=5, scoring="neg_mean_absolute_error")
+kNN_scores = cross_val_score(kNN_model, X_temp, y_temp, cv=5, scoring="neg_mean_absolute_error")
 print(-log_scores.mean(), log_scores.std())
 print(-tree_scores.mean(), tree_scores.std())
 print(-kNN_scores.mean(), kNN_scores.std())
@@ -295,7 +295,7 @@ models_config = [
     {
         "estimator": log_model,
         "param_name": "C",
-        "param_range": np.logspace(-4, 4, 5),
+        "param_range": np.logspace(-3, 3, 13),
         "scale": "log",
         "chosen_param": best_C
     },
@@ -319,8 +319,8 @@ count = 0
 for config in models_config:
     ValidationCurveDisplay.from_estimator(
         estimator=config["estimator"],
-        X=X,
-        y=y,
+        X=X_train_scaled,
+        y=y_train,
         param_name=config["param_name"],
         param_range=config["param_range"],
         cv=5,
@@ -336,6 +336,25 @@ for config in models_config:
     handles, _ = axes[count, 2].get_legend_handles_labels()
     axes[count, 2].legend(handles=handles, labels=["Train", "CV", "Best hyperparameter value"], fontsize='xx-small')
     count += 1
+    
+# learning curve for models - shows how model accuracy changes with change in training set size
+learning_curve_params = {
+    "X": X_train_scaled,
+    "y": y_train,
+    "cv": 5,
+    "scoring": "accuracy",
+    "line_kw": {"marker": "o"},
+    "score_name": "Accuracy"
+}
+
+count = 0
+for model in [log_model, tree_model, kNN_model]:
+    LearningCurveDisplay.from_estimator(model, **learning_curve_params, ax=axes[count, 6])
+    axes[count, 6].set_title(f"{model.__class__.__name__}")
+    axes[count, 6].set_xlabel("num training samples")
+    handles, _ = axes[count, 6].get_legend_handles_labels()
+    axes[count, 6].legend(handles=handles, labels=["Train", "CV"])
+    count +=1
 
 plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
 plt.savefig('results.png', bbox_inches='tight')
