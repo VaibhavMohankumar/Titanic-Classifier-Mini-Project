@@ -6,7 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, ValidationCurveDisplay, LearningCurveDisplay
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, roc_curve, auc, precision_recall_curve
 
 # loading and cleaning csv
@@ -50,7 +50,13 @@ X_test_scaled = scalar.transform(X_test)
 
 
 # training logistic regression model
-log_model = LogisticRegression(solver='liblinear', max_iter=1000)
+parameters = {
+    'C': np.logspace(-4, 4, 5)
+}
+grid_search = GridSearchCV(LogisticRegression(solver='liblinear', max_iter=1000), param_grid=parameters)
+grid_log = grid_search.fit(X_train_scaled, y_train)
+best_C = grid_log.best_params_['C']
+log_model = LogisticRegression(solver='liblinear', max_iter=1000, C=best_C)
 log_model.fit(X_train_scaled, y_train)
 
 # training decision tree model and optimizing maximum depth
@@ -72,6 +78,11 @@ grid_kNN = grid_search.fit(X_train_scaled, y_train)
 best_n_neighbors = grid_kNN.best_params_['n_neighbors']
 kNN_model = KNeighborsClassifier(n_neighbors=best_n_neighbors)
 kNN_model.fit(X_train_scaled, y_train)
+
+# print best parameters
+print(best_C)
+print(best_depth)
+print(best_n_neighbors)
 
 # proabilities with optimized parameters
 log_val_proba = np.asarray(log_model.predict_proba(X_val_scaled))[:, 1]
@@ -126,7 +137,7 @@ kNN_roc_auc = auc(kNN_fpr, kNN_tpr)
 
 
 # plotting model metrics and evaluations
-fig, axes = plt.subplots(3, 5, figsize=(30, 15))
+fig, axes = plt.subplots(3, 6, figsize=(30, 15))
 plt.subplots_adjust(wspace=0.7, hspace=0.4, top=0.90)
 
 # Position for 2x2 ROC plot 
@@ -257,20 +268,74 @@ def plot_confusion_matrix(axes, cm, title, color):
     axes.set_title(f"{title}\nConfusion Matrix", fontsize='small')
     
 # precisio-recall curves for all 3 models
-plot_precision_recall_curve(axes[0, 2], log_recalls, log_precisions, log_best_idx, log_best_threshold, 'Logistic Regression', 'purple')
-plot_precision_recall_curve(axes[0, 3], tree_recalls, tree_precisions, tree_best_idx, tree_best_threshold, 'Decision Tree', 'blue')
-plot_precision_recall_curve(axes[0, 4], kNN_recalls, kNN_precisions, kNN_best_idx, kNN_best_threshold, 'k-Nearest Neighbors', 'orange')
+plot_precision_recall_curve(axes[0, 3], log_recalls, log_precisions, log_best_idx, log_best_threshold, log_model.__class__.__name__, 'purple')
+plot_precision_recall_curve(axes[1, 3], tree_recalls, tree_precisions, tree_best_idx, tree_best_threshold, tree_model.__class__.__name__, 'blue')
+plot_precision_recall_curve(axes[2, 3], kNN_recalls, kNN_precisions, kNN_best_idx, kNN_best_threshold, kNN_model.__class__.__name__, 'orange')
 
 # metric-threshold plots for all 3 models
-plot_metric_threshold(axes[1, 2], log_precisions, log_recalls, log_f1_scores, log_thresholds, log_best_threshold, 'Logistic Regression', 'purple')
-plot_metric_threshold(axes[1, 3], tree_precisions, tree_recalls, tree_f1_scores, tree_thresholds, tree_best_threshold, 'Decision Tree', 'blue')
-plot_metric_threshold(axes[1, 4], kNN_precisions, kNN_recalls, kNN_f1_scores, kNN_thresholds, kNN_best_threshold, 'k-Nearest Neighbors', 'orange')
+plot_metric_threshold(axes[0, 4], log_precisions, log_recalls, log_f1_scores, log_thresholds, log_best_threshold, log_model.__class__.__name__, 'purple')
+plot_metric_threshold(axes[1, 4], tree_precisions, tree_recalls, tree_f1_scores, tree_thresholds, tree_best_threshold, tree_model.__class__.__name__, 'blue')
+plot_metric_threshold(axes[2, 4], kNN_precisions, kNN_recalls, kNN_f1_scores, kNN_thresholds, kNN_best_threshold, kNN_model.__class__.__name__, 'orange')
 
 # confusion matrix plots for all 3 models
-plot_confusion_matrix(axes[2, 2], log_cm, 'Logistic Regression', 'Purples')
-plot_confusion_matrix(axes[2, 3], tree_cm, 'Decision Tree', 'Blues')
-plot_confusion_matrix(axes[2, 4], kNN_cm, 'k-Nearest Neighbors', 'Oranges')
+plot_confusion_matrix(axes[0, 5], log_cm, log_model.__class__.__name__, 'Purples')
+plot_confusion_matrix(axes[1, 5], tree_cm, tree_model.__class__.__name__, 'Blues')
+plot_confusion_matrix(axes[2, 5], kNN_cm, kNN_model.__class__.__name__, 'Oranges')
 
+# Show realistic evaluations
+log_scores = cross_val_score(log_model, X, y, cv=5, scoring="neg_mean_absolute_error")
+tree_scores = cross_val_score(tree_model, X, y, cv=5, scoring="neg_mean_absolute_error")
+kNN_scores = cross_val_score(kNN_model, X, y, cv=5, scoring="neg_mean_absolute_error")
+print(-log_scores.mean(), log_scores.std())
+print(-tree_scores.mean(), tree_scores.std())
+print(-kNN_scores.mean(), kNN_scores.std())
+
+# Show visual representation of a GridSearchCV
+models_config = [
+    {
+        "estimator": log_model,
+        "param_name": "C",
+        "param_range": np.logspace(-4, 4, 5),
+        "scale": "log",
+        "chosen_param": best_C
+    },
+    {
+        "estimator": tree_model,
+        "param_name": "max_depth",
+        "param_range": np.arange(1, 26),
+        "scale": "linear",
+        "chosen_param": best_depth
+    },
+    {
+        "estimator": kNN_model,
+        "param_name": "n_neighbors",
+        "param_range": np.arange(1, 21),
+        "scale": "linear",
+        "chosen_param": best_n_neighbors
+    }
+]
+
+count = 0
+for config in models_config:
+    ValidationCurveDisplay.from_estimator(
+        estimator=config["estimator"],
+        X=X,
+        y=y,
+        param_name=config["param_name"],
+        param_range=config["param_range"],
+        cv=5,
+        scoring="accuracy",
+        ax=axes[count, 2]
+    )
+    
+    
+    axes[count, 2].set_title(f"{config['estimator'].__class__.__name__}\n(param: {config['param_name']})")
+    axes[count, 2].axvline(config['chosen_param'], color='red', linestyle=':', label=f'Best hyperparameter value ({config['chosen_param']})')
+    axes[count, 2].set_xscale(config["scale"])
+    axes[count, 2].grid(True, linestyle="--", alpha=0.6)
+    handles, _ = axes[count, 2].get_legend_handles_labels()
+    axes[count, 2].legend(handles=handles, labels=["Train", "CV", "Best hyperparameter value"], fontsize='xx-small')
+    count += 1
 
 plt.suptitle("Model Comparison for Predicting Titanic Survival", x=0.5, y=0.98, fontsize=16)
 plt.savefig('results.png', bbox_inches='tight')
